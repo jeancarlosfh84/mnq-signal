@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MNQ Signal">
+<meta name="theme-color" content="#030810">
+<title>MNQ Signal</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#030810;--bg2:#070f1e;--bg3:#0a1628;--teal:#0ef0c0;--red:#ff3d5a;--amber:#ffb300;--muted:rgba(255,255,255,0.38);--faint:rgba(255,255,255,0.07);--safe-top:env(safe-area-inset-top);--safe-bot:env(safe-area-inset-bottom)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:#e4eeff;font-family:'JetBrains Mono',monospace;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+#app{max-width:430px;margin:0 auto;padding-bottom:calc(72px + var(--safe-bot));min-height:100vh}
+.hdr{background:linear-gradient(180deg,#081526,#040c1a);border-bottom:1px solid var(--faint);padding:calc(var(--safe-top) + 12px) 14px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--teal),#0060ff);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 16px rgba(14,240,192,0.4);flex-shrink:0}
+.logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:var(--teal);letter-spacing:-0.02em}
+.logo-sub{font-size:9px;color:var(--muted);letter-spacing:0.12em}
+.ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:all 0.3s}
+.ws-dot.live{background:var(--teal);box-shadow:0 0 8px var(--teal);animation:blink 2s infinite}
+.ws-dot.connecting{background:var(--amber);animation:blink 0.8s infinite}
+.ws-dot.error{background:var(--red)}
+.main{padding:12px 14px 0}
+.cd-bar{border-radius:10px;padding:8px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--faint);background:rgba(14,240,192,0.04);transition:all 0.5s}
+.cd-bar.warn{background:rgba(255,179,0,0.08);border-color:rgba(255,179,0,0.4)}
+.cd-num{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:var(--teal)}
+.cd-bar.warn .cd-num{color:var(--amber)}
+.pre-alert{background:rgba(255,179,0,0.1);border:2px solid var(--amber);border-radius:12px;padding:12px 14px;margin-bottom:10px;animation:pulse-glow 1.5s infinite}
+#banner{position:fixed;top:calc(var(--safe-top) + 10px);left:12px;right:12px;background:#07111f;border-radius:14px;padding:14px 16px;z-index:200;display:none;box-shadow:0 8px 40px rgba(0,0,0,0.7);animation:slideDown 0.3s ease;max-width:406px;margin:0 auto}
+#banner.show{display:block}
+#banner-close{position:absolute;top:10px;right:12px;font-size:16px;cursor:pointer;color:var(--muted)}
+#banner-title{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;margin-bottom:5px;white-space:pre-line}
+#banner-body{font-size:10px;color:var(--muted);line-height:1.7;white-space:pre-line}
+.ticker{background:var(--bg2);border:1px solid var(--faint);border-radius:12px;padding:11px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.ticker-price{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;letter-spacing:-0.02em}
+.chg{border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700}
+.chg.up{background:rgba(14,240,192,0.12);color:var(--teal)}
+.chg.down{background:rgba(255,61,90,0.12);color:var(--red)}
+.hero{border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid transparent;transition:all 0.4s}
+.hero.bull{background:linear-gradient(135deg,rgba(14,240,192,0.08),rgba(6,196,154,0.03));border-color:rgba(14,240,192,0.25)}
+.hero.bear{background:linear-gradient(135deg,rgba(255,61,90,0.08),rgba(180,20,50,0.03));border-color:rgba(255,61,90,0.25)}
+.hero.warn{background:linear-gradient(135deg,rgba(255,179,0,0.1),rgba(200,140,0,0.04));border-color:rgba(255,179,0,0.35)}
+.hero.neutral{background:var(--bg2);border-color:var(--faint)}
+.hero-dir{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;letter-spacing:-0.02em;margin-bottom:2px}
+.hero-sub{font-size:9px;color:var(--muted);letter-spacing:0.1em;margin-bottom:12px}
+.h-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.h-lbl{font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-bottom:2px}
+.h-val{font-size:13px;font-weight:700}
+.sig-levels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.sig-box{background:rgba(255,255,255,0.05);border-radius:6px;padding:6px 8px}
+.sig-lbl{font-size:8px;color:var(--muted);margin-bottom:1px}
+.sig-val{font-size:12px;font-weight:700}
+.sess-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:9px;margin-top:10px;border:1px solid transparent}
+.sess-badge.in{background:rgba(14,240,192,0.12);border-color:rgba(14,240,192,0.3);color:var(--teal)}
+.sess-badge.out{background:rgba(255,179,0,0.1);border-color:rgba(255,179,0,0.25);color:var(--amber)}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.stat{background:var(--bg2);border:1px solid var(--faint);border-radius:10px;padding:10px;text-align:center}
+.stat-v{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;line-height:1.1}
+.stat-l{font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-top:2px}
+.spark-wrap{background:#04091a;border-radius:10px;overflow:hidden;margin-bottom:10px}
+#spark{width:100%;height:80px;display:block}
+.mon-bar{background:var(--bg2);border:1px solid var(--faint);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.stop-btn{background:none;border:1px solid rgba(255,61,90,0.3);border-radius:8px;padding:5px 12px;color:var(--red);font-size:9px;cursor:pointer;font-family:inherit}
+.connect-box{background:var(--bg2);border:1px solid rgba(14,240,192,0.2);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.sec{font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--faint)}
+.log-e{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--faint)}
+.log-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(3,8,16,0.96);border-top:1px solid var(--faint);display:flex;justify-content:space-around;padding:8px 0 calc(14px + var(--safe-bot));z-index:100;backdrop-filter:blur(20px)}
+.nav-btn{background:none;border:none;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 20px;font-family:inherit;transition:color 0.2s}
+.nav-btn.active{color:var(--teal)}
+.tab{display:none}
+.tab.active{display:block;animation:fadeIn 0.25s ease}
+.card{background:var(--bg2);border:1px solid var(--faint);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.f-lbl{font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px}
+.f-inp{width:100%;background:var(--bg3);border:1px solid rgba(14,240,192,0.2);border-radius:8px;padding:10px 12px;color:#e4eeff;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;margin-bottom:10px;-webkit-appearance:none}
+.f-inp:focus{border-color:var(--teal)}
+.btn{width:100%;padding:12px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.1em;cursor:pointer;-webkit-appearance:none;margin-bottom:8px;border:1px solid transparent}
+.btn-teal{background:rgba(14,240,192,0.15);border-color:rgba(14,240,192,0.4);color:var(--teal)}
+.btn-red{background:rgba(255,61,90,0.12);border-color:rgba(255,61,90,0.3);color:var(--red)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.ibox{background:var(--bg3);border:1px solid var(--faint);border-radius:8px;padding:9px}
+.i-lbl{font-size:9px;color:var(--muted);margin-bottom:3px}
+.i-val{font-size:13px;font-weight:700}
+.step{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--faint)}
+.snum{width:24px;height:24px;border-radius:50%;background:rgba(14,240,192,0.1);border:1px solid rgba(14,240,192,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--teal);flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.35}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 0 0 rgba(255,179,0,0.4)}50%{box-shadow:0 0 0 6px rgba(255,179,0,0)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="banner"><div id="banner-close" onclick="hideBanner()">✕</div><div id="banner-title"></div><div id="banner-body"></div></div>
+<div class="hdr"><div style="display:flex;align-items:center;gap:10px"><div class="logo-icon">⚡</div><div><div class="logo-name">MNQ SIGNAL</div><div class="logo-sub">QQQ · FINNHUB · TIEMPO REAL</div></div></div><div style="display:flex;align-items:center;gap:7px"><div class="ws-dot" id="wsDot"></div><span style="font-size:10px;color:var(--muted)" id="wsLbl">INACTIVO</span></div></div>
+<div class="main">
+<div class="tab active" id="tab-signal">
+<div class="cd-bar" id="cdBar"><div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em">CIERRE DE VELA 15MIN</div><div class="cd-num" id="cdNum">--:--</div></div><div style="text-align:right"><div style="font-size:9px;color:var(--muted)">Pre-alerta a los</div><div style="font-size:11px;color:var(--muted)">02:00 min</div></div></div>
+<div class="pre-alert" id="preBox" style="display:none"><div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--amber);margin-bottom:5px" id="preTitle">⚡ POSIBLE LONG</div><div style="font-size:10px;color:var(--muted);line-height:1.8" id="preBody"></div></div>
+<div class="ticker"><div><div class="ticker-price" id="tPrice">—</div><div style="font-size:9px;color:var(--muted);margin-top:2px" id="tInfo">QQQ · Esperando conexión...</div></div><div style="text-align:right"><div class="chg" id="tChg" style="background:rgba(255,255,255,0.05);color:var(--muted)">—</div><div style="font-size:8px;color:var(--amber);margin-top:3px;display:none" id="liveDot">🔴 EN VIVO</div></div></div>
+<div class="hero neutral" id="hero"><div class="hero-dir" id="hDir" style="color:var(--muted)">⚡ ACTIVA EL MONITOR</div><div class="hero-sub" id="hSub">INGRESA TU API KEY ABAJO</div><div class="h-grid"><div><div class="h-lbl">EMA 50</div><div class="h-val" id="hE50" style="color:var(--teal)">—</div></div><div><div class="h-lbl">EMA 200</div><div class="h-val" id="hE200" style="color:#ff4d6a">—</div></div><div><div class="h-lbl">Vela actual</div><div class="h-val" id="hSize" style="color:var(--amber)">—</div></div></div><div id="sigLevels" style="display:none" class="sig-levels"><div class="sig-box"><div class="sig-lbl">ENTRADA</div><div class="sig-val" id="sEntry" style="color:#e4eeff">—</div></div><div class="sig-box"><div class="sig-lbl">STOP</div><div class="sig-val" id="sSL" style="color:var(--red)">—</div></div><div class="sig-box"><div class="sig-lbl">TARGET</div><div class="sig-val" id="sTP" style="color:var(--teal)">—</div></div></div><div class="sess-badge out" id="sessBadge">⏸ FUERA DE SESIÓN</div></div>
+<div class="stats"><div class="stat"><div class="stat-v" id="stWR" style="color:var(--teal)">—</div><div class="stat-l">WIN RATE</div></div><div class="stat"><div class="stat-v" id="stTrades">0</div><div class="stat-l">SEÑALES HOY</div></div><div class="stat"><div class="stat-v" id="stPnl" style="color:var(--teal)">$0</div><div class="stat-l">P&L HOY</div></div></div>
+<div class="spark-wrap"><canvas id="spark"></canvas></div>
+<div class="connect-box" id="connectBox"><div style="font-size:11px;color:var(--teal);font-weight:700;margin-bottom:8px">🔑 Conecta tu API Key de Finnhub</div><div class="f-lbl">API KEY</div><input class="f-inp" type="password" id="keyInput" placeholder="Pega aquí tu API key" autocomplete="off"><button class="btn btn-teal" onclick="connect()">⚡ CONECTAR — DATOS EN TIEMPO REAL</button><div style="font-size:9px;color:var(--muted);line-height:1.7">finnhub.io → Regístrate gratis → Copia tu API key</div></div>
+<div class="mon-bar" id="monBar" style="display:none"><div><div style="font-size:12px;font-weight:700;margin-bottom:2px">Monitor activo</div><div style="font-size:9px;color:var(--muted)">QQQ tiempo real · Pre-alerta 2min antes del cierre</div></div><button class="stop-btn" onclick="disconnect()">DETENER</button></div>
+<div class="sec">Registro en tiempo real</div>
+<div id="log"><div class="log-e"><div class="log-dot" style="background:var(--muted)"></div><div style="font-size:10px;color:var(--muted)">Esperando conexión...</div></div></div>
+</div>
+<div class="tab" id="tab-config">
+<div class="sec">Conexión API</div>
+<div class="card"><div class="step"><div class="snum">1</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Ve a finnhub.io</div><div style="font-size:10px;color:var(--muted)">Abre el sitio en Safari</div></div></div><div class="step"><div class="snum">2</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Regístrate gratis</div><div style="font-size:10px;color:var(--muted)">No necesitas tarjeta de crédito</div></div></div><div class="step"><div class="snum">3</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Copia tu API key</div><div style="font-size:10px;color:var(--muted)">Dashboard → Mantén presionado → Copiar</div></div></div><div class="step" style="border:none"><div class="snum">4</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Pégala y conecta</div><div style="font-size:10px;color:var(--muted)">Mantén presionado → Pegar → Conectar</div></div></div><div style="margin-top:12px"><div class="f-lbl">Tu API Key</div><input class="f-inp" type="password" id="keyInput2" placeholder="Pega aquí tu API key" autocomplete="off"><button class="btn btn-teal" onclick="connectFromConfig()">🟢 CONECTAR</button><button class="btn btn-red" id="discBtn" style="display:none" onclick="disconnect()">🔴 DESCONECTAR</button><div style="font-size:9px;color:var(--muted)" id="connSt">Estado: Sin conexión</div></div></div>
+<div class="sec">Parámetros</div>
+<div class="card"><div class="g2"><div class="ibox"><div class="i-lbl">EMA Rápida</div><div class="i-val" style="color:var(--teal)">50 períodos</div></div><div class="ibox"><div class="i-lbl">EMA Lenta</div><div class="i-val" style="color:#ff4d6a">200 períodos</div></div><div class="ibox"><div class="i-lbl">Stop Loss</div><div class="i-val" style="color:var(--red)">30 puntos</div></div><div class="ibox"><div class="i-lbl">Take Profit</div><div class="i-val" style="color:var(--teal)">60 puntos</div></div><div class="ibox"><div class="i-lbl">Filtro vela</div><div class="i-val" style="color:var(--amber)">&lt; 100 pts</div></div><div class="ibox"><div class="i-lbl">Temporalidad</div><div class="i-val">15 min</div></div></div><div style="margin-top:10px"><div class="f-lbl">Contratos MNQ</div><input class="f-inp" type="number" id="cInput" value="1" min="1" max="50" oninput="updateCalc()"></div></div>
+</div>
+<div class="tab" id="tab-info">
+<div class="sec">Cómo funciona</div>
+<div class="card"><div class="step"><div class="snum">1</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Pre-alerta ⚡ — 2 min antes</div><div style="font-size:10px;color:var(--muted)">Vela cruzando EMA50. App vibra.</div></div></div><div class="step"><div class="snum">2</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Vas a TopstepX</div><div style="font-size:10px;color:var(--muted)">Te posicionas listo con el countdown.</div></div></div><div class="step"><div class="snum">3</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Observas el cierre</div><div style="font-size:10px;color:var(--muted)">¿Cerró cruzando EMA50 con menos de 100pts?</div></div></div><div class="step"><div class="snum">4</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Entras al segundo exacto</div><div style="font-size:10px;color:var(--muted)">Nueva vela abre → SL 30pts · TP 60pts</div></div></div><div class="step" style="border:none"><div class="snum">5</div><div><div style="font-size:11px;font-weight:700;color:#e4eeff;margin-bottom:2px">Señal confirmada 🚨</div><div style="font-size:10px;color:var(--muted)">App envía alerta con Entry, SL y TP.</div></div></div></div>
+<div class="sec">Calculadora</div>
+<div class="card"><div class="f-lbl">Contratos MNQ</div><input class="f-inp" type="number" id="calcC" value="1" min="1" max="50" oninput="updateCalc()"><div class="g2"><div class="ibox"><div class="i-lbl">Ganancia / WIN</div><div class="i-val" id="cWin" style="color:var(--teal)">+$30.00</div></div><div class="ibox"><div class="i-lbl">Pérdida / LOSS</div><div class="i-val" id="cLoss" style="color:var(--red)">-$15.00</div></div><div class="ibox"><div class="i-lbl">WR mínimo</div><div class="i-val" style="color:var(--amber)">33.3%</div></div><div class="ibox"><div class="i-lbl">Ratio R:R</div><div class="i-val" style="color:var(--teal)">1 : 2</div></div></div></div>
+<div class="sec">Estado del mercado</div>
+<div class="card"><div class="g2"><div class="ibox"><div class="i-lbl">Hora NY</div><div class="i-val" id="iNY" style="color:var(--teal)">--:--</div></div><div class="ibox"><div class="i-lbl">Mercado</div><div class="i-val" id="iMkt">—</div></div><div class="ibox"><div class="i-lbl">Tu sesión</div><div class="i-val" id="iSess">—</div></div><div class="ibox"><div class="i-lbl">Próx. cierre</div><div class="i-val" id="iClose" style="color:var(--muted)">--:--</div></div></div></div>
+</div>
+</div>
+<nav class="bnav"><button class="nav-btn active" id="nav-signal" onclick="switchTab('signal')"><span style="font-size:22px">⚡</span><span style="font-size:8px;letter-spacing:0.08em">SEÑAL</span></button><button class="nav-btn" id="nav-config" onclick="switchTab('config')"><span style="font-size:22px">⚙️</span><span style="font-size:8px;letter-spacing:0.08em">CONFIG</span></button><button class="nav-btn" id="nav-info" onclick="switchTab('info')"><span style="font-size:22px">📊</span><span style="font-size:8px;letter-spacing:0.08em">INFO</span></button></nav>
+</div>
+<script>
+const SL=30,TP=60,PV=0.5,EMA_F=50,EMA_S=200,MAX_C=100;
+const SESS_S=9.5,SESS_E=13.5,CANDLE_S=900,PRE_S=120,SYMBOL='QQQ';
+const API_BASE=window.location.origin;
+let ws=null,connected=false,wsStatus='idle';
+let closedBars=[],liveCandle=null,e50=[],e200=[];
+let livePrice=null,prevClose=null,todayTrades=[],contracts=1;
+let lastSigKey='',lastPreKey='',currentPre=null,bannerTimer=null;
+
+window.addEventListener('DOMContentLoaded',()=>{
+  try{const k=localStorage.getItem('fh_key')||'';if(k){document.getElementById('keyInput').value=k;document.getElementById('keyInput2').value=k;}}catch{}
+  startClock();updateCalc();
+});
+function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+n).classList.add('active');document.getElementById('nav-'+n).classList.add('active');}
+function nyOff(){const m=new Date().getMonth()+1;return m>=3&&m<=11?-4:-5;}
+function nyHour(){const n=new Date(),o=nyOff();return((n.getUTCHours()+o+24)%24)+n.getUTCMinutes()/60;}
+function inSess(){const d=new Date().getDay(),h=nyHour();return d>=1&&d<=5&&h>=SESS_S&&h<SESS_E;}
+function mktOpen(){const d=new Date().getDay(),h=nyHour();return d>=1&&d<=5&&h>=9.5&&h<16;}
+function nyTime(){const n=new Date(),o=nyOff(),ny=new Date(n.getTime()+o*3600000),h=ny.getUTCHours(),m=ny.getUTCMinutes();return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
+function secsToNext(){const now=Math.floor(Date.now()/1000);return(Math.ceil(now/CANDLE_S)*CANDLE_S)-now;}
+function candleTs(){const now=Math.floor(Date.now()/1000);return Math.floor(now/CANDLE_S)*CANDLE_S;}
+function fmt(s){return`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
+function dayN(){return['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][new Date().getDay()];}
+function startClock(){
+  setInterval(()=>{
+    const s=secsToNext();
+    document.getElementById('cdNum').textContent=fmt(s);
+    const bar=document.getElementById('cdBar');
+    s<=PRE_S?bar.classList.add('warn'):bar.classList.remove('warn');
+    if(connected&&s<=PRE_S&&s>PRE_S-3)checkPre();
+    if(s>=CANDLE_S-1&&liveCandle)pushClose();
+    const ny=nyTime();
+    document.getElementById('tInfo').textContent=`QQQ · ${dayN()} ${ny} NY · ${mktOpen()?'🟢 Abierto':'🔴 Cerrado'}`;
+    const sb=document.getElementById('sessBadge');
+    if(inSess()){sb.className='sess-badge in';sb.textContent='✅ EN TU SESIÓN · NY '+ny;}
+    else{sb.className='sess-badge out';sb.textContent='⏸ FUERA DE SESIÓN · NY '+ny;}
+    document.getElementById('iNY').textContent=dayN()+' '+ny;
+    document.getElementById('iMkt').textContent=mktOpen()?'🟢 Abierto':'🔴 Cerrado';
+    document.getElementById('iMkt').style.color=mktOpen()?'var(--teal)':'var(--red)';
+    document.getElementById('iSess').textContent=inSess()?'✅ Activa':'⏸ Fuera';
+    document.getElementById('iSess').style.color=inSess()?'var(--teal)':'var(--amber)';
+    document.getElementById('iClose').textContent=fmt(s);
+    document.getElementById('iClose').style.color=s<=PRE_S?'var(--amber)':'var(--muted)';
+  },1000);
+}
+function calcEMA(prices,period){
+  if(prices.length<period)return new Array(prices.length).fill(null);
+  const k=2/(period+1),out=new Array(period-1).fill(null);
+  let ema=prices.slice(0,period).reduce((a,b)=>a+b,0)/period;
+  out.push(ema);
+  for(let i=period;i<prices.length;i++){ema=prices[i]*k+ema*(1-k);out.push(ema);}
+  return out;
+}
+function processTick(price,ts){
+  livePrice=price;
+  const cts=Math.floor(ts/CANDLE_S)*CANDLE_S;
+  if(!liveCandle||liveCandle.ts!==cts){
+    if(liveCandle&&liveCandle.ts!==cts)pushClose();
+    liveCandle={open:price,high:price,low:price,close:price,ts:cts};
+  }else{liveCandle.high=Math.max(liveCandle.high,price);liveCandle.low=Math.min(liveCandle.low,price);liveCandle.close=price;}
+  document.getElementById('tPrice').textContent=price.toFixed(2);
+  const chg=prevClose?price-prevClose:0;
+  const cb=document.getElementById('tChg');
+  cb.textContent=(chg>=0?'+':'')+chg.toFixed(2)+' pts';
+  cb.className='chg '+(chg>=0?'up':'down');
+  document.getElementById('liveDot').style.display='block';
+  updateHero();drawSpark();
+  if(secsToNext()<=PRE_S)checkPre();
+}
+function pushClose(){
+  if(!liveCandle)return;
+  const bar={...liveCandle};
+  closedBars=[...closedBars,bar].slice(-300);
+  prevClose=bar.close;
+  const cls=closedBars.map(b=>b.close);
+  e50=calcEMA(cls,EMA_F);e200=calcEMA(cls,EMA_S);
+  liveCandle=null;currentPre=null;lastPreKey='';
+  document.getElementById('preBox').style.display='none';
+  document.getElementById('liveDot').style.display='none';
+  checkSig(closedBars,e50,e200);
+  updateHero();drawSpark();
+}
+function checkSig(bars,ea50,ea200){
+  const n=bars.length-1;if(n<2||!ea50[n]||!ea200[n])return;
+  const sz=Math.abs(bars[n].close-bars[n].open);if(sz>MAX_C)return;
+  const nowAb=bars[n].close>ea50[n],prevAb=bars[n-1].close>ea50[n-1];
+  const bull=nowAb&&!prevAb&&ea50[n]>ea200[n];
+  const bear=!nowAb&&prevAb&&ea50[n]<ea200[n];
+  if(!bull&&!bear)return;
+  const dir=bull?'LONG':'SHORT';
+  const key=`${dir}-${bars[n].ts}`;
+  if(key===lastSigKey)return;
+  lastSigKey=key;
+  const entry=bars[n].close;
+  const sl=(dir==='LONG'?entry-SL:entry+SL).toFixed(2);
+  const tp=(dir==='LONG'?entry+TP:entry-TP).toFixed(2);
+  if(inSess()){
+    showBanner(`🚨 SEÑAL CONFIRMADA — ${dir}`,`Vela cerró cruzando EMA50 ✅\nEntrada: ~${entry.toFixed(2)}\nSL: ${sl} · TP: ${tp}\nVela: ${sz.toFixed(2)} pts`,dir==='LONG'?'var(--teal)':'var(--red)',10000);
+    addLog(dir==='LONG'?'bull':'bear',`🚨 SEÑAL ${dir} · Entrada ~${entry.toFixed(2)} · SL ${sl} · TP ${tp}`);
+    document.getElementById('sEntry').textContent='~'+entry.toFixed(2);
+    document.getElementById('sSL').textContent=sl;
+    document.getElementById('sTP').textContent=tp;
+    document.getElementById('sigLevels').style.display='grid';
+    todayTrades.push({dir,status:'pending'});
+    updateStats();
+    if(navigator.vibrate)navigator.vibrate([400,100,400,100,400]);
+  }else{addLog('info',`Señal ${dir} fuera de sesión — ignorada`);}
+}
+function checkPre(){
+  if(!closedBars.length||!liveCandle||!inSess())return;
+  const n=closedBars.length-1;if(!e50[n]||!e200[n])return;
+  const prevAb=closedBars[n].close>e50[n],nowAb=liveCandle.close>e50[n];
+  const sz=Math.abs(liveCandle.close-liveCandle.open);if(sz>MAX_C)return;
+  const crossUp=!prevAb&&nowAb&&e50[n]>e200[n];
+  const crossDn=prevAb&&!nowAb&&e50[n]<e200[n];
+  if(!crossUp&&!crossDn)return;
+  const dir=crossUp?'LONG':'SHORT';
+  const key=`${dir}-${candleTs()}`;
+  if(key===lastPreKey)return;
+  lastPreKey=key;currentPre={dir};
+  const s=secsToNext();
+  document.getElementById('preTitle').textContent=`⚡ POSIBLE ${dir} FORMÁNDOSE`;
+  document.getElementById('preBody').innerHTML=`Vela cruzando EMA50 · Precio: <b style="color:#e4eeff">${liveCandle.close.toFixed(2)}</b><br>👉 <b style="color:#e4eeff">Ve a TopstepX AHORA</b><br>⏱ Cierre en: <b style="color:var(--amber)">${fmt(s)}</b>`;
+  document.getElementById('preBox').style.display='block';
+  showBanner(`⚡ PRE-ALERTA — POSIBLE ${dir}`,`Vela cruzando EMA50\n¡Ve a TopstepX ya!\nCierre en: ${fmt(s)} · Precio: ${liveCandle.close.toFixed(2)}`,'var(--amber)',8000);
+  addLog('warn',`⚡ PRE-ALERTA ${dir} · Precio ${liveCandle.close.toFixed(2)} · Cierre en ${fmt(s)}`);
+  if(navigator.vibrate)navigator.vibrate([200,80,200]);
+}
+function updateHero(){
+  const n=e50.length-1;if(n<0||!e50[n]||!e200[n])return;
+  const bull=e50[n]>e200[n],hero=document.getElementById('hero');
+  if(currentPre){hero.className='hero warn';document.getElementById('hDir').style.color='var(--amber)';document.getElementById('hDir').textContent=`⚡ POSIBLE ${currentPre.dir} FORMÁNDOSE`;document.getElementById('hSub').textContent='VELA CRUZANDO EMA50 · VE A TOPSTEPX AHORA';}
+  else{hero.className='hero '+(bull?'bull':'bear');document.getElementById('hDir').style.color=bull?'var(--teal)':'var(--red)';document.getElementById('hDir').textContent=bull?'📈 TENDENCIA ALCISTA':'📉 TENDENCIA BAJISTA';document.getElementById('hSub').textContent=bull?'EMA50 > EMA200 · MODO COMPRA':'EMA50 < EMA200 · MODO VENTA';}
+  document.getElementById('hE50').textContent=e50[n].toFixed(2);
+  document.getElementById('hE200').textContent=e200[n].toFixed(2);
+  if(liveCandle)document.getElementById('hSize').textContent=Math.abs(liveCandle.close-liveCandle.open).toFixed(2)+' pts';
+}
+function updateStats(){
+  const wins=todayTrades.filter(t=>t.status==='win').length;
+  const closed=todayTrades.filter(t=>t.status!=='pending').length;
+  const wr=closed>0?(wins/closed*100).toFixed(0)+'%':'—';
+  const pnl=todayTrades.reduce((a,t)=>t.status==='win'?a+TP*PV*contracts:t.status==='loss'?a-SL*PV*contracts:a,0);
+  document.getElementById('stWR').textContent=wr;
+  document.getElementById('stTrades').textContent=todayTrades.length;
+  document.getElementById('stPnl').textContent=(pnl>=0?'+':'')+'$'+pnl.toFixed(2);
+  document.getElementById('stPnl').style.color=pnl>=0?'var(--teal)':'var(--red)';
+}
+function updateCalc(){
+  const c=+document.getElementById('cInput').value||1;
+  contracts=c;
+  document.getElementById('cWin').textContent='+$'+(TP*PV*c).toFixed(2);
+  document.getElementById('cLoss').textContent='-$'+(SL*PV*c).toFixed(2);
+  try{document.getElementById('calcC').value=c;}catch{}
+}
+function drawSpark(){
+  const canvas=document.getElementById('spark');
+  const allBars=liveCandle?[...closedBars,liveCandle]:closedBars;
+  if(!canvas||allBars.length<5)return;
+  const dpr=window.devicePixelRatio||1,W=canvas.offsetWidth,H=80;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const rb=allBars.slice(-80),re50=[...e50].slice(-80),re200=[...e200].slice(-80);
+  if(liveCandle){re50.push(re50[re50.length-1]);re200.push(re200[re200.length-1]);}
+  const prices=rb.flatMap(b=>[b.high,b.low]),ev=[...re50,...re200].filter(Boolean);
+  if(!ev.length)return;
+  const mn=Math.min(...prices,...ev)-2,mx=Math.max(...prices,...ev)+2;
+  const xOf=i=>W*0.01+(i/(rb.length-1))*W*0.98,yOf=p=>H-((p-mn)/(mx-mn))*H;
+  ctx.fillStyle='#04091a';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#ff4d6a';ctx.lineWidth=1;ctx.beginPath();let s=false;
+  re200.forEach((v,i)=>{if(!v)return;s?ctx.lineTo(xOf(i),yOf(v)):(ctx.moveTo(xOf(i),yOf(v)),s=true);});ctx.stroke();
+  ctx.strokeStyle='#0ef0c0';ctx.lineWidth=1.2;ctx.beginPath();s=false;
+  re50.forEach((v,i)=>{if(!v)return;s?ctx.lineTo(xOf(i),yOf(v)):(ctx.moveTo(xOf(i),yOf(v)),s=true);});ctx.stroke();
+  const bw=Math.max((W*0.98/rb.length)*0.55,1);
+  rb.forEach((b,i)=>{
+    const isLive=liveCandle&&i===rb.length-1,up=b.close>=b.open;
+    const col=isLive?'rgba(255,179,0,0.9)':up?'#0ef0c0':'#ff3d5a';
+    ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(xOf(i),yOf(b.high));ctx.lineTo(xOf(i),yOf(b.low));ctx.stroke();
+    const y1=yOf(Math.max(b.open,b.close)),y2=yOf(Math.min(b.open,b.close));
+    ctx.fillRect(xOf(i)-bw/2,y1,bw,Math.max(y2-y1,1));
+  });
+}
+function showBanner(title,body,color,ms=6000){
+  const b=document.getElementById('banner');
+  document.getElementById('banner-title').textContent=title;
+  document.getElementById('banner-title').style.color=color||'var(--teal)';
+  document.getElementById('banner-body').textContent=body;
+  b.style.border=`2px solid ${color||'var(--teal)'}`;
+  b.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer=setTimeout(hideBanner,ms);
+}
+function hideBanner(){document.getElementById('banner').classList.remove('show');}
+function addLog(type,text){
+  const log=document.getElementById('log');
+  const colors={bull:'var(--teal)',bear:'var(--red)',warn:'var(--amber)',error:'#ff6b35',info:'var(--muted)'};
+  const e=document.createElement('div');e.className='log-e';
+  const t=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  e.innerHTML=`<div class="log-dot" style="background:${colors[type]||colors.info}"></div><div><div style="font-size:10px;color:var(--muted);line-height:1.6">${text}</div><div style="font-size:9px;color:rgba(255,255,255,0.2)">${t}</div></div>`;
+  const ph=log.querySelector('.log-e');
+  if(ph&&log.children.length===1&&ph.textContent.includes('Esperando'))ph.remove();
+  log.insertBefore(e,log.firstChild);
+  while(log.children.length>25)log.removeChild(log.lastChild);
+}
+function setStatus(status){
+  wsStatus=status;
+  const dot=document.getElementById('wsDot'),lbl=document.getElementById('wsLbl');
+  dot.className='ws-dot '+status;
+  lbl.textContent=status==='live'?'LIVE':status==='connecting'?'CONECTANDO...':status==='error'?'ERROR':'INACTIVO';
+  const cs=document.getElementById('connSt'),db=document.getElementById('discBtn');
+  if(status==='live'){cs.innerHTML='Estado: <b style="color:var(--teal)">🟢 Conectado y en vivo</b>';db.style.display='block';document.getElementById('connectBox').style.display='none';document.getElementById('monBar').style.display='flex';}
+  else{cs.innerHTML=`Estado: <b style="color:${status==='error'?'var(--red)':'var(--muted)'}">${status==='error'?'🔴 Error':'⚪ Sin conexión'}</b>`;db.style.display='none';document.getElementById('connectBox').style.display='block';document.getElementById('monBar').style.display='none';}
+}
+async function fetchHistorical(key){
+  const res=await fetch(`${API_BASE}/api/bars?token=${encodeURIComponent(key)}`);
+  if(!res.ok)throw new Error(`Error del servidor: ${res.status}`);
+  const data=await res.json();
+  if(data.error)throw new Error(data.error);
+  if(!data.t||data.s!=='ok')throw new Error('API key inválida. Verifica en finnhub.io');
+  closedBars=data.t.map((ts,i)=>({ts,open:data.o[i],high:data.h[i],low:data.l[i],close:data.c[i]})).filter(b=>b.open&&b.close);
+  if(closedBars.length<10)throw new Error('Muy pocos datos. Intenta en horario de mercado.');
+  prevClose=closedBars[closedBars.length-1].close;
+  const cls=closedBars.map(b=>b.close);
+  e50=calcEMA(cls,EMA_F);e200=calcEMA(cls,EMA_S);
+  addLog('info',`✅ ${closedBars.length} velas cargadas · EMA50 y EMA200 listas`);
+  drawSpark();updateHero();
+}
+async function connect(){
+  const key=(document.getElementById('keyInput').value||'').trim();
+  if(!key){showBanner('⚠️ Falta API Key','Ve a finnhub.io y copia tu API key','var(--amber)');return;}
+  try{localStorage.setItem('fh_key',key);}catch{}
+  setStatus('connecting');
+  addLog('info','🔄 Conectando a Finnhub...');
+  try{await fetchHistorical(key);}
+  catch(e){setStatus('error');addLog('error','❌ '+e.message);showBanner('❌ Error',e.message,'var(--red)');return;}
+  if(ws)ws.close();
+  ws=new WebSocket(`wss://ws.finnhub.io?token=${key}`);
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({type:'subscribe',symbol:SYMBOL}));
+    setStatus('live');connected=true;
+    addLog('info',`🟢 WebSocket activo · ${SYMBOL} en tiempo real`);
+    showBanner('✅ ¡Conectado!',`Datos en tiempo real de ${SYMBOL}\nEMA50 y EMA200 activas\nPre-alertas 9:30–13:30 NY`,'var(--teal)');
+  };
+  ws.onmessage=evt=>{
+    try{const msg=JSON.parse(evt.data);if(msg.type==='trade'&&msg.data?.length){const tick=msg.data[msg.data.length-1];processTick(tick.p,Math.floor(tick.t/1000));}}catch{}
+  };
+  ws.onerror=()=>{setStatus('error');addLog('error','❌ Error WebSocket');};
+  ws.onclose=()=>{if(connected){connected=false;setStatus('idle');addLog('info','Conexión cerrada');}};
+}
+function connectFromConfig(){
+  const k=(document.getElementById('keyInput2').value||'').trim();
+  document.getElementById('keyInput').value=k;
+  connect();switchTab('signal');
+}
+function disconnect(){
+  if(ws){ws.close();ws=null;}
+  connected=false;liveCandle=null;livePrice=null;currentPre=null;
+  setStatus('idle');
+  document.getElementById('preBox').style.display='none';
+  addLog('info','⏸ Desconectado');
+}
+</script>
+</body>
+</html>
